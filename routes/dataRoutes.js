@@ -4,6 +4,13 @@ const router = express.Router();
 const dataController = require('../controllers/dataController');
 const { authenticateToken } = require('../middleware/authMiddleware'); // For protected routes
 
+// Add this to see if the route is hit
+router.use((req, res, next) => {
+    console.log(`[BACKEND] Route hit: ${req.method} ${req.originalUrl}`);
+    next();
+});
+
+
 // --- SensorReadings Routes (These will call the External API via dataService) ---
 // GET all sensor readings (from external API)
 router.get('/readings', authenticateToken, dataController.getSensorReadings);
