@@ -27,16 +27,12 @@ app.get('/', (req, res) => {
 
 const https = require('https'); // add this at the top
 
-
+// #region SQL Data
 const EXTERNAL_SENSOR_API_BASE_URL = process.env.EXTERNAL_SENSOR_API_BASE_URL;
 
-// Ensure the base URL for the external sensor API is set
 if (!EXTERNAL_SENSOR_API_BASE_URL) {
     console.error('EXTERNAL_SENSOR_API_BASE_URL is not defined in .env');
-    // Consider how to handle this critical error: exit, throw, or default.
 }
-
-
 
 app.get('/api/getFarms', async (req, res) => {
   try {
@@ -62,7 +58,74 @@ app.get('/api/getSensorReadings', async (req, res) => {
   }
 });
 
+app.get('/api/getSensors', async (req, res) => {
+  try {
+    const response = await axios.get(`${EXTERNAL_SENSOR_API_BASE_URL}/Sensors/GetAllSensors`, {  
+      httpsAgent: new https.Agent({ rejectUnauthorized: false }) // <- bypass SSL cert errors
+    });
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error fetching sensor readings:", error);
+    res.status(500).json({ error: 'Failed to fetch sensor data' });
+  }
+});
 
+app.get('/api/getPlants', async (req, res) => {
+  try {
+    const response = await axios.get(`${EXTERNAL_SENSOR_API_BASE_URL}/Plants/GetAllPlants`, {  
+      httpsAgent: new https.Agent({ rejectUnauthorized: false }) // <- bypass SSL cert errors
+    });
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error fetching sensor readings:", error);
+    res.status(500).json({ error: 'Failed to fetch plants data' });
+  }
+});
+
+app.get('/api/getAllPlantSpecies', async (req, res) => {
+  try {
+    const response = await axios.get(`${EXTERNAL_SENSOR_API_BASE_URL}/PlantSpecies/GetAllPlantSpecies`, {  
+      httpsAgent: new https.Agent({ rejectUnauthorized: false }) // <- bypass SSL cert errors
+    });
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error fetching sensor readings:", error);
+    res.status(500).json({ error: 'Failed to fetch plant species data' });
+  }
+});
+
+app.get('/api/getUsers', async (req, res) => {
+  try {
+    const response = await axios.get(`${EXTERNAL_SENSOR_API_BASE_URL}/Users/GetAllUsers`, {  
+      httpsAgent: new https.Agent({ rejectUnauthorized: false }) // <- bypass SSL cert errors
+    });
+    res.json(response.data);
+  } catch (error) {
+    console.error("Error fetching sensor readings:", error);
+    res.status(500).json({ error: 'Failed to fetch users data' });
+  }
+});
+// #endregion
+
+// #region Weather API
+const getWeatherData = async () => {
+  const url = process.env.WEATHER_API_URL;
+
+  const response = await fetch(url);
+  if (!response.ok) throw new Error('Failed to fetch weather data');
+  return await response.json();
+}
+
+app.get('/weather', async (req, res) => {
+  try {
+      const data = await getWeatherData();
+      res.json(data);
+  } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Weather data fetch failed' });
+  }
+});
+// #endregion
 
 // Start the server
 app.listen(port, () => {
