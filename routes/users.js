@@ -2,8 +2,10 @@ const express = require('express');
 const router = express.Router();
 const axios = require('axios');
 const https = require('https');
+const bcrypt = require('bcrypt');
 
 const EXTERNAL_SENSOR_API_BASE_URL = process.env.EXTERNAL_SENSOR_API_BASE_URL;
+const SALT_ROUNDS = 10;
 
 // POST /api/login
 router.post('/login', async (req, res) => {
@@ -18,33 +20,24 @@ router.post('/login', async (req, res) => {
 
     const users = response.data;
     const normalizedIdentifier = identifier.trim().toLowerCase();
-    const normalizedPassword = password.trim();
 
     const user = users.find(u => {
       const email = u.Email?.trim().toLowerCase();
       const username = u.Username?.trim().toLowerCase();
-      const pwd = u.PasswordHash?.trim();
-
-      return (
-        (email === normalizedIdentifier || username === normalizedIdentifier) &&
-        pwd === normalizedPassword
-      );
+      return email === normalizedIdentifier || username === normalizedIdentifier;
     });
 
     if (!user) {
-      const foundIdentifier = users.find(u => {
-        const email = u.Email?.trim().toLowerCase();
-        const username = u.Username?.trim().toLowerCase();
-        return email === normalizedIdentifier || username === normalizedIdentifier;
-      });
+      console.warn("❌ [Login] No user found for identifier:", identifier);
+      return res.status(401).json({ success: false, message: "User not found" });
+    }
 
-      if (foundIdentifier) {
-        console.warn("⚠️ [Login] Identifier matched but password wrong");
-        return res.status(401).json({ success: false, message: "Wrong password" });
-      } else {
-        console.warn("❌ [Login] No user found for identifier:", identifier);
-        return res.status(401).json({ success: false, message: "User not found" });
-      }
+    const hash = user.PasswordHash?.trim();
+
+    const passwordMatch = await bcrypt.compare(password, hash);
+    if (!passwordMatch) {
+      console.warn("⚠️ [Login] Incorrect password");
+      return res.status(401).json({ success: false, message: "Wrong password" });
     }
 
     console.log(`✅ [Login] Authenticated: ${user.Username}`);
@@ -58,8 +51,6 @@ router.post('/login', async (req, res) => {
   }
 });
 
-
-
 // POST /api/register
 router.post('/register', async (req, res) => {
   const { username, email, password } = req.body;
@@ -69,14 +60,17 @@ router.post('/register', async (req, res) => {
   }
 
   try {
-    const url = `${EXTERNAL_SENSOR_API_BASE_URL}/Users/AddUser`;
+    const salt = await bcrypt.genSalt(SALT_ROUNDS);
+    const hash = await bcrypt.hash(password, salt);
+
     const newUser = {
       Username: username,
       Email: email,
-      PasswordHash: password, // ⚠️ Reminder: this is plain text
+      PasswordHash: hash, // ✅ Hashed password
       Role: 'user',
     };
 
+    const url = `${EXTERNAL_SENSOR_API_BASE_URL}/Users/AddUser`;
     const response = await axios.post(url, newUser, {
       httpsAgent: new https.Agent({ rejectUnauthorized: false }),
     });

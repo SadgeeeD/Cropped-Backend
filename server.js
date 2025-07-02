@@ -3,19 +3,24 @@ const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
 const https = require('https');
+const bodyParser = require('body-parser');
+
 
 const app = express();
 const port = process.env.PORT || 5000;
 
 // Import Routes
 const userRoutes = require('./routes/users');
+const manualEntryRoute = require('./routes/manualEntry');
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(bodyParser.json());
 
 // Register Routes
 app.use('/api', userRoutes); // This enables /api/login
+app.use('/manualEntry', manualEntryRoute);
 
 // Root Route
 app.get('/', (req, res) => {
