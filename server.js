@@ -12,15 +12,17 @@ const port = process.env.PORT || 5000;
 // Import Routes
 const userRoutes = require('./routes/users');
 const manualEntryRoute = require('./routes/manualEntry');
+const flaskRoutes = require('./routes/Flask');
 
 // Middleware
 app.use(cors());
-app.use(express.json());
-app.use(bodyParser.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(bodyParser.json({ limit: '10mb' }));
 
 // Register Routes
 app.use('/api', userRoutes); // This enables /api/login
 app.use('/manualEntry', manualEntryRoute);
+app.use('/api', flaskRoutes);
 
 // Root Route
 app.get('/', (req, res) => {

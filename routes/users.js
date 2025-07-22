@@ -83,4 +83,35 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// POST /api/changePassword
+router.post('/changePassword', async (req, res) => {
+  const { email, currentPassword, newPassword } = req.body;
+
+  try {
+    const url = `${EXTERNAL_SENSOR_API_BASE_URL}/Users/GetAllUsers`;
+    const response = await axios.get(url, {
+      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+    });
+
+    const users = response.data;
+    const user = users.find(u => u.Email.trim().toLowerCase() === email.trim().toLowerCase());
+
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const match = await bcrypt.compare(currentPassword, user.PasswordHash?.trim());
+    if (!match) return res.status(403).json({ success: false, message: 'Incorrect current password' });
+
+    const newHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+    const updateUrl = `${EXTERNAL_SENSOR_API_BASE_URL}/Users/UpdatePassword`; // Adjust based on your backend
+    await axios.post(updateUrl, { Email: email, PasswordHash: newHash }, {
+      httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+    });
+
+    res.json({ success: true, message: 'Password updated successfully' });
+  } catch (err) {
+    console.error('[changePassword] Error:', err.message);
+    res.status(500).json({ success: false, message: 'Password update failed' });
+  }
+});
+
 module.exports = router;
